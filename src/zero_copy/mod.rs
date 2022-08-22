@@ -16,6 +16,7 @@ pub mod chain;
 pub mod combinator;
 pub mod error;
 pub mod input;
+pub mod pratt;
 pub mod primitive;
 pub mod recursive;
 #[cfg(feature = "regex")]
