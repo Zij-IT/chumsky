@@ -32,13 +32,10 @@ where
 
     fn go<M: Mode>(&self, inp: &mut InputRef<'a, '_, I, E, S>) -> PResult<M, Self::Output, E> {
         let before = inp.save();
-        match self.parser.go::<Check>(inp) {
-            Ok(_) => {
-                let after = inp.save();
-                Ok(M::bind(|| (self.mapper)(inp.slice(before..after))))
-            }
-            Err(e) => Err(e),
-        }
+        self.parser.go::<Check>(inp)?;
+        let after = inp.save();
+
+        Ok(M::bind(|| (self.mapper)(inp.slice(before..after))))
     }
 
     go_extra!();
@@ -1129,7 +1126,7 @@ where
     {
         self.parser.go::<M>(inp).map(|out| {
             M::map(out, |(init, end)| {
-                init.into_iter().rev().fold(end, |b, a| (self.folder)(a, b))
+                init.into_iter().rfold(end, |b, a| (self.folder)(a, b))
             })
         })
     }
