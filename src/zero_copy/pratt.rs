@@ -248,11 +248,27 @@ pub const fn binary_infix_operator<I: ?Sized, E, S, Op, Expr, AtomParser, OpPars
 }
 
 /// See [`binary_infix_operator()`].
-#[derive(Copy, Clone)]
 pub struct BinaryInfixOperator<I: ?Sized, E, S, Op, Expr, AtomParser, OpParser> {
     atom_parser: AtomParser,
     operator_parser: OpParser,
     phantom: PhantomData<(E, S, Op, Expr, I)>,
+}
+
+impl<I, E, S, Op, Expr, AtomParser: Copy, OpParser: Copy> Copy
+    for BinaryInfixOperator<I, E, S, Op, Expr, AtomParser, OpParser>
+{
+}
+
+impl<I: ?Sized, E, S, Op, Expr, AtomParser: Clone, OpParser: Clone> Clone
+    for BinaryInfixOperator<I, E, S, Op, Expr, AtomParser, OpParser>
+{
+    fn clone(&self) -> Self {
+        Self {
+            atom_parser: self.atom_parser.clone(),
+            operator_parser: self.operator_parser.clone(),
+            phantom: PhantomData,
+        }
+    }
 }
 
 impl<'a, I, E, S, Op, Expr, AtomParser, OpParser>
