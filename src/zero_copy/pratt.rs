@@ -299,14 +299,20 @@ where
                     }
                     (op, precedence)
                 }
-                Err(_) => return Ok(Emit::bind(|| left_expr)),
+                Err(_) => {
+                    inp.rewind(offset);
+                    return Ok(Emit::bind(|| left_expr));
+                }
             };
 
             match self.pratt_parse(inp, Some(prec.strength_right())) {
                 Ok(right_expr) => {
                     left_expr = op.build_expression(left_expr, right_expr);
                 }
-                Err(e) => return Err(e),
+                Err(e) => {
+                    inp.rewind(offset);
+                    return Err(e);
+                }
             }
         }
     }
