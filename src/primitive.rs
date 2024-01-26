@@ -825,6 +825,47 @@ where
     go_extra!(O);
 }
 
+/// Creates a parser provided by the current `E::Extra`.
+pub const fn from_state<'a, F, P, I, O, E>(f: F) -> FromState<F, P, I, O, E> {
+    FromState {
+        f,
+        phantom: EmptyPhantom::new(),
+    }
+}
+
+/// See [`from_state`]
+pub struct FromState<F, P, I, O, E> {
+    f: F,
+    #[allow(dead_code)]
+    phantom: EmptyPhantom<(I, P, O, E)>,
+}
+
+impl<F: Copy, P, I, O, E> Copy for FromState<F, P, I, O, E> {}
+impl<F: Clone, P, I, O, E> Clone for FromState<F, P, I, O, E> {
+    fn clone(&self) -> Self {
+        Self {
+            f: self.f.clone(),
+            phantom: EmptyPhantom::new(),
+        }
+    }
+}
+
+impl<'src, F, P, I, O, E> Parser<'src, I, O, E> for FromState<F, P, I, O, E>
+where
+    I: Input<'src>,
+    E: ParserExtra<'src, I>,
+    F: Fn(&mut E::State) -> P,
+    P: Parser<'src, I, O, E>,
+{
+    #[inline]
+    fn go<M: Mode>(&self, inp: &mut InputRef<'src, '_, I, E>) -> PResult<M, O> {
+        let parser = (self.f)(inp.state());
+        parser.go::<M>(inp)
+    }
+
+    go_extra!(O);
+}
+
 /// See [`choice`].
 #[derive(Copy, Clone)]
 pub struct Choice<T> {
@@ -992,6 +1033,95 @@ where
     }
     go_extra!(O);
 }
+
+/// See [`longest`].
+#[derive(Copy, Clone)]
+pub struct Longest<T> {
+    parsers: T,
+}
+
+/// TODO: Docs
+pub const fn longest<T>(parsers: T) -> Longest<T> {
+    Longest { parsers }
+}
+
+macro_rules! impl_longest_for_tuple {
+    () => {};
+    ($head:ident $($X:ident)*) => {
+        impl_longest_for_tuple!($($X)*);
+        impl_longest_for_tuple!(~ $head $($X)*);
+    };
+    (~ $Head:ident $($X:ident)+) => {
+        #[allow(unused_variables, non_snake_case)]
+        impl<'src, I, E, $Head, $($X),*, O> Parser<'src, I, O, E> for Longest<($Head, $($X,)*)>
+        where
+            I: Input<'src>,
+            E: ParserExtra<'src, I>,
+            $Head: Parser<'src, I, O, E>,
+            $($X: Parser<'src, I, O, E>),*
+        {
+            #[inline]
+            #[allow(unused_assignments)]
+            fn go<M: Mode>(&self, inp: &mut InputRef<'src, '_, I, E>) -> PResult<M, O> {
+                let before = inp.save();
+
+                let Longest { parsers: ($Head, $($X,)*), .. } = self;
+
+                let mut item = None;
+                let mut offset = inp.save();
+
+                match $Head.go::<M>(inp) {
+                    Ok(out) => {
+                        item = Some(out);
+                        offset = inp.save();
+                        inp.rewind(before.clone());
+                    },
+                    Err(()) => inp.rewind(before.clone()),
+                }
+
+                $(
+                    match $X.go::<M>(inp) {
+                        Ok(out) => {
+                            if inp.save().cursor() > offset.cursor() {
+                                item = Some(out);
+                                offset = inp.save();
+                                inp.rewind(before.clone());
+                            }
+                        },
+                        Err(()) => inp.rewind(before.clone()),
+                    }
+                )*
+
+                match item {
+                    Some(it) => {
+                        inp.rewind(offset);
+                        Ok(it)
+                    }
+                    None => Err(())
+                }
+            }
+
+            go_extra!(O);
+        }
+    };
+    (~ $Head:ident) => {
+        impl<'src, I, E, $Head, O> Parser<'src, I, O, E> for Longest<($Head,)>
+        where
+            I: Input<'src>,
+            E: ParserExtra<'src, I>,
+            $Head:  Parser<'src, I, O, E>,
+        {
+            #[inline]
+            fn go<M: Mode>(&self, inp: &mut InputRef<'src, '_, I, E>) -> PResult<M, O> {
+                self.parsers.0.go::<M>(inp)
+            }
+
+            go_extra!(O);
+        }
+    };
+}
+
+impl_longest_for_tuple!(A_ B_ C_ D_ E_ F_ G_ H_ I_ J_ K_ L_ M_ N_ O_ P_ Q_ R_ S_ T_ U_ V_ W_ X_ Y_ Z_);
 
 /// See [`group`].
 #[derive(Copy, Clone)]

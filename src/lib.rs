@@ -2880,6 +2880,7 @@ where
 #[macro_export]
 macro_rules! select {
     ($($p:pat $(= $extra:ident)? $(if $guard:expr)? $(=> $out:expr)?),+ $(,)?) => ({
+        #[allow(clippy::unused_unit)]
         $crate::primitive::select(
             move |x, extra| match (x, extra) {
                 $(($p $(,$extra)?, ..) $(if $guard)? => ::core::option::Option::Some({ () $(;$out)? })),+,

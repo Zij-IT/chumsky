@@ -838,8 +838,6 @@ macro_rules! impl_operator_for_tuple {
     };
 }
 
-impl_operator_for_tuple!(A_ B_ C_ D_ E_ F_ G_ H_ I_ J_ K_ L_ M_ N_ O_ P_ Q_ R_ S_ T_ U_ V_ W_ X_ Y_ Z_);
-
 #[allow(unused_variables, non_snake_case)]
 impl<'src, I, O, E, Op> Operator<'src, I, O, E> for Vec<Op>
 where
@@ -991,6 +989,8 @@ where
 
     go_extra!(O);
 }
+
+impl_operator_for_tuple!(A_ B_ C_ D_ E_ F_ G_ H_ I_ J_ K_ L_ M_ N_ O_ P_ Q_ R_ S_ T_ U_ V_ W_ X_ Y_ Z_ AA_ AB_ AC_ AD_ AE_ AF_ AG_ AH_ AI_ AJ_ AK_ AL_ AM_ AN_ AO_ AP_ AQ_ AR_ AS_ AT_ AU_ AV_ AW_ AX_ AY_ AZ_);
 
 #[cfg(test)]
 mod tests {
